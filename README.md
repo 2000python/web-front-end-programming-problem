@@ -53,11 +53,11 @@ console.log({} instanceof Object);                   // true
 ```js
 const toString = Object.prototype.toString;
 
-console.log(toString.call(NaN)); 					//[object Number]
-console.log(toString.call(document)); 				//[object HTMLDocument]
-console.log(toString.call(new Set())); 				//[object Set]
-console.log(toString.call(new RegExp())); 			//[object RegExp]
-console.log(toString.call(new Date())); 			//[object Date]
+console.log(toString.call(NaN));                    //[object Number]
+console.log(toString.call(document));               //[object HTMLDocument]
+console.log(toString.call(new Set()));              //[object Set]
+console.log(toString.call(new RegExp()));           //[object RegExp]
+console.log(toString.call(new Date()));             //[object Date]
 console.log(toString.call(2000));                   //[object Number]
 console.log(toString.call(true));                   //[object Boolean]
 console.log(toString.call('我是一个字符串。'));        //[object String]
@@ -108,17 +108,17 @@ function type(value){
 }
 
 //test
-console.log(type(2000))      							//number
-console.log(type('string'))								//string
-console.log(type(null))									//null
-console.log(type(undefined))							//undefined
-console.log(type(NaN))									//number
-console.log(type(document))								//htmldocument
-console.log(type(new Set()))							//set
-console.log(type(new Map()))							//map
-console.log(type(function(){}))						    //function
-console.log(type(()=>{}))								//function
-console.log(type(new Promise(()=>{})))		            //promise
+console.log(type(2000))                                 //number
+console.log(type('string'))                             //string
+console.log(type(null))                                 //null
+console.log(type(undefined))                            //undefined
+console.log(type(NaN))                                  //number
+console.log(type(document))                             //htmldocument
+console.log(type(new Set()))                            //set
+console.log(type(new Map()))                            //map
+console.log(type(function(){}))                         //function
+console.log(type(()=>{}))                               //function
+console.log(type(new Promise(()=>{})))                  //promise
 ```
 
 ##  2.new
