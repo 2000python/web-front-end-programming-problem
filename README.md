@@ -269,5 +269,70 @@ ma(3,4);                             //6
 ma(4,3);                             //7
 ```
 
-#### 4.2 使用bind实现
+#### 4.2 ES6实现
+
+代码（**使用bind实现**）
+
+bind函数有天然的拼接参数的功能。
+
+```js
+function curry(func,...args){
+  return func.length <= args.length ? func(...args):curry.bind(null,func,...args);
+}
+
+//test
+let ss = (a,b,c) => a + b + c;    
+console.log(curry(ss,1,2)(3));
+console.log(curry(ss,1,2,3));
+console.log(curry(ss)(1,2,3));
+console.log(curry(ss)(1)(2)(3));
+console.log(curry(ss)(1,2)(3));                   
+let ma = curry(ss)(1,2);
+ma(3,4); 
+console.log(ma(3,4)); 
+ma(4,3); 
+console.log(ma(4,3));                            
+```
+
+代码（**使用箭头函数**）
+
+```js
+//第一种实现
+//不支持`curry(ss,1,2,3)`这样的调用,由于实现的原因必须再一次调用，如`curry(ss,1,2,3)()`
+const curry = (func,...arr) =>(...args)=>(
+  arg => arg.length < func.length ? curry(func,...arg):func(...arg)
+)([...arr,...args])
+
+//第二种实现
+const curry = (fn, arr=[]) => (...args) => (
+  arg => arg.length === fn.length
+    ? fn(...arg)
+    : curry(fn, arg)
+)([...arr, ...args])
+
+//test
+let ss = (a,b,c) => a + b + c;
+let sss = curry(ss,[1])
+sss(2)(3)
+console.log(sss(2)(3));
+console.log(curry(ss,1,2)(3));
+console.log(curry(ss,1,2,3));
+console.log(curry(ss,1,2,3)());
+console.log(curry(ss)(1,2,3));
+console.log(curry(ss)(1)(2)(3));
+console.log(curry(ss)(1,2)(3));                   
+let ma = curry(ss)(1,2);
+ma(3,4); 
+console.log(ma(3,4)); 
+ma(4,3); 
+console.log(ma(4,3)); 
+```
+
+> 第二种实现函数柯里化时传入的第二个参数是一个数组
+>
+> ```js
+> let sss = curry(ss,[1])
+> sss(1,2)
+> console.log(sss(1,2)(3));
+> ```
 
