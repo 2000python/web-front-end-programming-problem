@@ -1,7 +1,6 @@
 ---
-Author:尉旭胜(rainsin)
-Editer:Typora
-
+noteId: "597a90205bdc11ec8096653657d5f244"
+tags: []
 ---
 
 #  前端手写题
@@ -335,4 +334,254 @@ console.log(ma(4,3));
 > sss(1,2)
 > console.log(sss(1,2)(3));
 > ```
+
+## 5. instanceof的实现
+
+这个函数和new的思路一样，都是明确过程，然后循着过程写代码。
+
+> 思路：遍历实例的原型链与类的原型比较
+
+> 过程：
+>
+> * 第一步：获取实例的原型链和类的原型
+> * 第二步：遍历实例的原型链与类的原型比较
+
+代码
+
+```js
+function myInstanceof(left,right){
+  // 获取实例的原型链的开始
+  let leftProto = Object.getPrototypeOf(left);
+  // 获取类的原型
+  let rightProto = Object.getPrototypeOf(right);
+  // 遍历实例的原型链
+  while(true){
+    //原型链的尽头
+    if(leftProto === null) return false;
+    if(leftProto === rightProto) return true;
+    leftProto = Object.getPrototypeOf(leftProto)
+  }
+}
+
+//test
+
+```
+
+## 6.防抖和节流
+
+> 防抖：多次执行变为最后一次执行，
+>
+> 节流：多次执行变为每隔一段时间执行
+
+### 6.1 防抖动
+
+```js
+const antiShake = (func,wait = 50) => {
+  let clock = 0;
+  return function (...args){
+    //如果设置了计时器，则清空计时器
+    if(clock) clearTimeout(clock);
+    //设置计时器
+    clock = setTimeout(()=>{func.apply(this,args)},wait)
+  }
+}
+```
+
+> 场景：凡是需要防止多次运行影响性能的场景，如监听页面的滚动的高度
+
+### 6.2 节流
+
+设置一个单位时间，函数在这个时间段里只能执行一次
+
+```js
+const throttle = (func,timeQuantum = 50) => {
+  //上次执行时间
+  let lastTime = 0;
+  return function (...args){
+    //这次执行时间
+    let nowTime =  + new Date();
+    if(nowTime - lastTime > timeQuantum){
+      lastTime = nowTime
+      func.apply(this,args)
+    }
+  }
+}
+
+//test
+setInterval(
+  throttle(() => {
+    console.log('大难临头各自飞')
+  }, 500),
+  1
+)
+```
+
+> 场景：
+>
+> - 拖拽场景：固定时间内只执行一次，防止超高频次触发位置变动
+> - 缩放场景：监控浏览器`resize`
+> - 动画场景：避免短时间内多次触发动画引起性能问题
+
+## 7. 拷贝
+
+***前置知识***：
+
+> * `Object.create(proto)`方法创建一个新对象，将这个对象的`__proto__`指向`proto`，可以用它实现继承。
+> * 前面的类型判断函数在深拷贝时，会有应用。
+
+### 7.1 浅拷贝
+
+> `Object.assign()`可以实现对象的浅拷贝
+
+自己动手实现：
+
+***代码：***
+
+```js
+const shallowCopy = (obj) => {
+  if(typeof obj !== 'object'|| obj === null){
+    return obj
+  }
+  let copyRes = Array.isArray(obj) ? [] : null;
+ for(let item in obj){
+   if(obj.hasOwnProperty(key)){
+     //简易版深拷贝这里会有一个递归过程
+     copyRes[item] = obj[item]
+   }
+ }
+}
+```
+
+### 7.2 深拷贝（重点）
+
+#### 简简易版
+
+```js
+let deepCopy = JSON.parse(JSON.stringify(obj));
+```
+
+> `JSON.stringify()`方法先将原对象JSON序列化，`JSON.parse()`又将JSON转换为JavaScript的值或对象。
+>
+> **这种方法需要保证对象是JSON安全的，所以只适用于部分情况。**
+
+**问题：**
+
+> - 他无法实现对函数 、RegExp等特殊对象的克隆
+>
+> ```js
+> let func = () => {return 3};
+> let reg = /^.$/g;
+> let date = new Date();
+> 
+> let copy = JSON.parse(JSON.stringify(func))  //会报错
+> let copy2 = JSON.parse(JSON.stringify(reg))  //{}
+> let copy3 = JSON.parse(JSON.stringify(date)) //当前时间
+> 
+> console.log('1',copy,'2',copy2,'3',copy3);
+> ```
+>
+> - 会抛弃对象的constructor,所有的构造函数会指向Object
+> - 对象有循环引用,会报错
+>
+> ```js
+> let a ={'ai':12};
+> a.trg = a;
+> console.log(JSON.parse(JSON.stringify(a)));   //Uncaught TypeError
+> ```
+
+#### 面试版
+
+上述简简易版其实对于大部分情况都是可以直接使用的
+
+不过我们还是要写一个通用的API，解决上面的所有问题。
+
+**原始实现：**在浅拷贝的基础上加上递归
+
+```js
+const deepCopy = (obj) => {
+  //判断传入对象
+  if(typeof obj !== 'object'|| obj === null){
+    return obj
+  }
+  let copyRes = Array.isArray(obj) ? [] : {};
+  for(let item in obj){
+    if(obj.hasOwnProperty(item)){
+      //递归过程
+      copyRes[item] = deepCopy(obj[item])
+    }
+  }
+  return copyRes
+}
+
+//test
+let func = () => {return 3};
+function method(a = 2,b = 4){
+  return a + b
+} 
+let reg = /^.$/g;
+console.log(deepCopy(func));                     // () => {return 3}
+console.log(deepCopy(func)());                   // 3
+console.log(deepCopy(method));                   // ƒ method(a = 2,b = 4){ return a + b }
+console.log(deepCopy(method)());                 // 6
+console.log(deepCopy(reg));                      // {}
+console.log(deepCopy(new Date()));               // {}
+//循环引用
+let a ={ zxz: 12};
+a.trg = a;
+console.log(deepCopy(a));                        // 栈溢出
+```
+
+##### **问题**：
+
+> 函数可以复制，但是其他的特殊对象还是无法复制。
+
+> 循环引用没有解决：因为上述方法只是一个简单的递归，并没有判断是否已经被拷贝过了。
+
+###### 1.解决循环引用
+
+> 我们可以用Map的键是唯一的这个性质，来判断是否已经被拷贝过，如果是就直接返回
+
+```js
+const deepCopy = (obj,map = new Map()) => {
+  //判断是否已经被拷贝过，如果是就直接返回
+  if(map.get(obj)) return obj;
+  //判断传入对象
+  if(typeof obj !== 'object'|| obj === null){
+    return obj
+  }else{
+    map.set(obj, true);
+    let copyRes = Array.isArray(obj) ? [] : {};
+    for(let item in obj){
+        if(obj.hasOwnProperty(item)){
+            //递归过程
+            copyRes[item] = deepCopy(obj[item],map)
+        }
+    }
+    return copyRes
+  }
+}
+
+//test
+let a ={zxz: 12};
+a.trg = a;
+console.log(deepCopy(a));                        // {zxz: 12, trg: {…}}
+a = null;
+console.log(a);                                  // 之后并不会被回收。
+```
+
+***注意：***
+
+> map 上的 key 和 map 构成了强引用关系，这是不安全的编码，需要改进。
+
+题外话：
+
+> 关于强引用、弱引用
+>
+> * 强引用
+>
+>   强引用就是我们最常见的普通对象引用（如new 一个对象），只要还有强引用指向一个对象，就表明此对象还“活着”。在强引用面前，即使浏览器内存空间不足，也不会回收它。对于一个普通的对象，如果没有其他的引用关系，只要超过了引用的作用域或者显式地将相应（强）引用赋值为null，就意味着此对象可以被垃圾收集了。但要注意的是，并不是赋值为null后就立马被垃圾回收，具体的回收时机还是要看垃圾收集策略的。
+>
+> * 弱引用
+>
+>   
 
