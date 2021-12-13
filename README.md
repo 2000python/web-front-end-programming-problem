@@ -75,7 +75,7 @@ console.log(toString.call(null));                   //[object Null]
 
 综合上述几种方法，我们可以自己封装一个类型判断函数。
 
-> 基本类型(除去`null`)+`function`：可以用`typeof`方法，因为这个方法速度快。
+> 基本类型(除去`null`) + `function`：可以用`typeof`方法，因为这个方法速度快。
 >
 > `null`和`promise`：单独判断，单独返回。
 >
@@ -516,13 +516,18 @@ const deepCopy = (obj) => {
 //test
 let func = () => {return 3};
 function method(a = 2,b = 4){
-  return a + b
+  return function (){
+    return a + b;
+  }
 } 
 let reg = /^.$/g;
+let dd = deepCopy(method);
+console.log(method.prototype); 
+console.log(dd.prototype); 
 console.log(deepCopy(func));                     // () => {return 3}
 console.log(deepCopy(func)());                   // 3
-console.log(deepCopy(method));                   // ƒ method(a = 2,b = 4){ return a + b }
-console.log(deepCopy(method)());                 // 6
+console.log(deepCopy(method));                   // ƒ method(a = 2,b = 4){return function (){return a + b;}}
+console.log(deepCopy(method)()());               // 6
 console.log(deepCopy(reg));                      // {}
 console.log(deepCopy(new Date()));               // {}
 //循环引用
@@ -583,5 +588,324 @@ console.log(a);                                  // 之后并不会被回收。
 >
 > * 弱引用
 >
->   
+>   弱引用一旦被垃圾回收器检测到，就会被回收。
+>
+>   新的weakSet和WeakMap中，表示存储的对象值/键名所引用的对象都是被弱引用的
+>
+> * 二者相比，坊间有一个广为流传的非常形象的比喻：
+>
+>   > 强引用就是一个小孩A牵着一条狗，他们之间通过狗链儿连着。
+>   >
+>   > 弱引用就是，旁边有个小孩B指着A牵的狗，说：嘿，那有条狗，B指向那条狗，但他们之间没有是指绑在一起的东西
+>   >
+>   > 当A放开狗链，狗就会跑掉（被垃圾回收），无论B是不是还指着。
+>   >
+>   > 但是，当B不再指着那条狗，狗还被A牵着，不会影响它是否跑掉。
+>
+>   总的来说，就是强引用不会被GC回收，弱引用会被回收。
+
+上面的实现怎么改进这个问题呢？
+
+其实，ES6引入了两种新的内置函数，分别为`WeakMap`和`WeakSet`,他们的键的引用就是弱引用，可以解决这个问题。
+
+如下：
+
+```js
+const deepCopy = (obj,map = new WeakMap()) => {
+  ......
+}
+```
+
+###### 2.所有内置对象的拷贝
+
+可以分成可遍历对象和不可遍历对象。
+
+* 先获取传入对象的类型(用前面实现的类型获取函数)
+
+```js
+const extractReference = (value) => (
+  /(?<=\[object\s).*(?=\])/.exec(Object.prototype.toString.call(value))[0].toLowerCase()
+)
+const type = extractReference(obj);
+// 输出的对象
+let cloneTarget;
+```
+
+* 可遍历对象
+
+  > Set，Map，Array，Object，Arguments
+
+```js
+const canIterable = {
+   set:true,
+   map:true,
+   array:true,
+   object:true,
+   arguments:true,
+}
+if(canIterable[type]){
+  let ctor = target.constructor;
+  cloneTarget = new ctor();
+  //可遍历对象的实现
+}else{
+  //不可遍历对象的实现
+}
+```
+
+处理Set方法：
+
+```js
+if(type === 'set'){
+  obj.forEach( item => {
+    cloneTarget.add(deepCopy(item,map))
+  })
+}
+```
+
+处理Map方法：
+
+```js
+if(type === 'map'){
+  obj.forEach((item,key)=>{
+    cloneTarget.set(deepCopy(key,map),deepCopy(item,map))
+  })
+}
+```
+
+处理数组和对象：
+
+```js
+for(let item in obj){
+    if(obj.hasOwnProperty(item)){
+          cloneTarget[item] = deepCopy(obj[item],map)
+     }
+}
+```
+
+* 不可遍历对象
+
+```js
+const boolTag = 'boolean';
+const numberTag = 'number';
+const stringTag = 'string';
+const symbolTag = 'symbol';
+const dateTag = 'date';
+const errorTag = 'error';
+const regexpTag = 'regexp';
+const funcTag = 'function';
+```
+
+总的操作函数：
+
+```js
+const handleNotIterable = (obj,type) =>{
+  let cotr = obj.constructor;
+  switch(type){
+    case boolTag:
+      return new Object(Boolean.prototype.valueOf.call(obj));
+    case numberTag:
+      return new Object(Number.prototype.valueOf.call(obj));
+    case stringTag:
+      return new Object(String.prototype.valueOf.call(obj));
+    case symbolTag:
+      return new Object(Symbol.prototype.valueOf.call(obj));
+    case dateTag:
+      return new cotr(obj);
+    case regexpTag:
+      return handleRegexp(obj);
+    case funcTag:
+      return handleFunction(obj);
+    default: 
+      return new cotr(obj);
+  }   
+}
+```
+
+里面的复制正则的方法：
+
+```js
+const handleRegexp = (obj) =>{
+  const source = obj.source;
+  const flag = obj.flags;
+  return new RegExp(source,flag);
+}
+```
+
+里面的复制函数的方法（感觉复制函数没什么意义）：
+
+第一种：
+
+不用复制，在最开始判断的时候，就直接返回。
+
+```js
+if(typeof obj !== 'object'|| obj === null){
+    return obj;
+}
+```
+
+第二种：
+
+使用`eval`来复制函数
+
+```js
+const handleFunction = obj =>{
+  let funcString = obj.tostring();
+  if (funcString === `function ${obj.name}() { [native code] }`) {
+		return obj
+	}
+	return obj.prototype ? eval(`(${funcString})`) : eval(funcString);
+}
+```
+
+第三种：
+
+
+
+```js
+const handleFunc = (obj) => {
+  // 箭头函数直接返回自身
+  if(!obj.prototype) return obj;
+  const bodyReg = /(?<={)(.|\n)+(?=})/m;
+  const paramReg = /(?<=\().+(?=\)\s+{)/;
+  const funcString = obj.toString();
+  // 分别匹配 函数参数 和 函数体
+  const param = paramReg.exec(funcString);
+  const body = bodyReg.exec(funcString);
+  if(!body) return null;
+  if (param) {
+    const paramArr = param[0].split(',');
+    return new Function(...paramArr, body[0]);
+  } else {
+    return new Function(body[0]);
+  }
+}
+```
+
+##### 最终版：
+
+```js
+const deepCopy = (obj,map = new WeakMap) => {
+  //未装箱的简单基本类型
+  if(typeof obj !== 'function' && typeof obj !== 'object'|| obj === null){
+    return obj;
+  }
+  //提取类型
+  const extractReference = obj => /(?<=\[object\s).*(?=\])/.exec(Object.prototype.toString.call(obj))[0].toLowerCase();
+  let cloneObj;
+  const type = extractReference(obj);
+  //可遍历对象的标签
+  const canIterable = {
+   set:true,
+   map:true,
+   array:true,
+   object:true,
+   arguments:true,
+  }
+  //不可遍历对象的标签
+  const boolTag = 'boolean';
+  const numberTag = 'number';
+  const stringTag = 'string';
+  const symbolTag = 'symbol';
+  const dateTag = 'date';
+  const errorTag = 'error';
+  const regexpTag = 'regexp';
+  const funcTag = 'function';
+  //操作正则表达式
+  const handleRegexp = obj => {
+    const source = obj.source;
+    const flag = obj.flags;
+    return new RegExp(source,flag);
+  }
+  const handleFunction = obj => {
+    const funcString = obj.tostring()
+  }
+  const handleFunc = (obj) => {
+  // 箭头函数直接返回自身
+  if(!obj.prototype) return obj;
+  const bodyReg = /(?<={)(.|\n)+(?=})/m;
+  const paramReg = /(?<=\().+(?=\)\s+{)/;
+  const funcString = obj.toString();
+  // 分别匹配 函数参数 和 函数体
+  const param = paramReg.exec(funcString);
+  const body = bodyReg.exec(funcString);
+  if(!body) return null;
+  if (param) {
+     const paramArr = param[0].split(',');
+     return new Function(...paramArr, body[0]);
+  } else {
+     return new Function(body[0]);
+  }
+  }
+  //不可遍历对象复制的实现
+  const handleNotIterable = (obj,type) =>{
+  let cotr = obj.constructor;
+  switch(type){
+    case boolTag:
+      return new Object(Boolean.prototype.valueOf.call(obj));
+    case numberTag:
+      return new Object(Number.prototype.valueOf.call(obj));
+    case stringTag:
+      return new Object(String.prototype.valueOf.call(obj));
+    case symbolTag:
+      return new Object(Symbol.prototype.valueOf.call(obj));
+    case dateTag:
+      return new cotr(obj);
+    case regexpTag:
+      return handleRegexp(obj);
+    default:
+      return new cotr(obj);
+    }   
+  }
+  
+  if(canIterable[type]){
+    //防止对象的原型丢失
+    let ctor = obj.constructor;
+    cloneTarget = new ctor(); 
+  }else{
+     //不可遍历对象
+    return handleNotIterable(obj,type);
+  }
+  
+  //可遍历对象的实现
+  if(map.get(obj))return obj;
+  map.set(obj,true);
+  if(type === 'set'){
+     cloneObj = new Set();
+     obj.forEach(item=>cloneObj.add(deepCopy(item,map)))
+  }
+  if(type === 'map'){
+    cloneObj = new Map();
+    obj.forEach((item,key)=>cloneObj.set(deepCopy(key,map),deepCopy(item,map)))
+  }
+  if(type === 'object'||type === 'array'){
+    cloneObj = Array.isArray(obj) ? [] : {};
+    for(let item in obj){
+      if(obj.hasOwnProperty(item)){
+        cloneObj[item] = deepCopy(obj[item],map)
+      }
+    }
+  }
+}
+
+//test
+let a ={zxz: 12};
+a.trg = a;
+console.log(deepCopy(a));
+console.log(deepCopy(2000));
+console.log(deepCopy('a'));
+console.log(deepCopy(new Number(2000)));
+console.log(deepCopy(new String('a')));
+console.log(deepCopy(new Error('typeError')));
+console.log(deepCopy(()=>{}));  //函数其实并没有复制，引用的还是原来的函数。
+console.log(deepCopy(/.*/g));
+console.log(deepCopy(new RegExp('.*','g')));
+console.log(deepCopy(function ss(){}));
+console.log(deepCopy(new Set()));
+console.log(deepCopy(new Map()));
+console.log(deepCopy(new Date()));
+```
+
+**总结：**
+
+现实中使用深拷贝的情况其实用`JSON.parse(JSON.stringify(obj))`这个方法完全够用了。
 
