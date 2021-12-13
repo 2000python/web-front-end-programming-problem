@@ -852,6 +852,8 @@ const deepCopy = (obj,map = new WeakMap) => {
       return new cotr(obj);
     case regexpTag:
       return handleRegexp(obj);
+      case funcTag:
+      return handleFunc(obj);
     default:
       return new cotr(obj);
     }   
@@ -896,7 +898,7 @@ console.log(deepCopy('a'));
 console.log(deepCopy(new Number(2000)));
 console.log(deepCopy(new String('a')));
 console.log(deepCopy(new Error('typeError')));
-console.log(deepCopy(()=>{}));  //函数其实并没有复制，引用的还是原来的函数。
+console.log(deepCopy(()=>{})); 
 console.log(deepCopy(/.*/g));
 console.log(deepCopy(new RegExp('.*','g')));
 console.log(deepCopy(function ss(){}));
