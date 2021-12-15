@@ -1,6 +1,6 @@
 ---
 noteId: "597a90205bdc11ec8096653657d5f244"
-tags: []
+tags: ['手写']
 ---
 
 #  前端手写题
@@ -759,7 +759,7 @@ const handleFunction = obj =>{
 
 第三种：
 
-
+箭头函数没有原型对象
 
 ```js
 const handleFunc = (obj) => {
@@ -816,9 +816,7 @@ const deepCopy = (obj,map = new WeakMap) => {
     const flag = obj.flags;
     return new RegExp(source,flag);
   }
-  const handleFunction = obj => {
-    const funcString = obj.tostring()
-  }
+  //操作函数
   const handleFunc = (obj) => {
   // 箭头函数直接返回自身
   if(!obj.prototype) return obj;
@@ -910,4 +908,63 @@ console.log(deepCopy(new Date()));
 **总结：**
 
 现实中使用深拷贝的情况其实用`JSON.parse(JSON.stringify(obj))`这个方法完全够用了。
+
+## 8.jsonp
+
+> 内联脚本不受跨域的限制，而且只支持get请求
+
+第一种:
+
+步骤：
+
+* 先判断url是否有参数，如果有，`query list`以`&`开头；否则，以`?`开头。
+* 将`param`对象，逐个拼接进`query list`
+* 生成一个随机的回调函数名
+* 发起请求，最后要删除这个节点
+
+```js
+const myJsonp = (url,param,callback) => {
+  let qureyString = url.indexOf('?') === -1 ? '?' : '&';
+  
+  for(let key in param){
+    if(param.hasOwnProperty(key)){
+      qureyString += `${key}=${param[key]}&`
+    }
+  }
+  //生成随机函数名
+  let randomName = Math.random().toString().repalce('.',''),funcName = `jsonpFunc${random}`;
+  qureyString += `callback=${funcName}` ;
+  
+  let scriptNode = document.creaceElement('script');
+  scriptNode.src = qureyString;
+  
+  window[funcName] = function (){
+    callback(...argments)
+    document.getElementByTagName('head')[0].removeChild(scriptNode)
+  }
+  //发起请求
+  document.getElementByTagName('head')[0].appendChild(scriptNode)
+}
+
+```
+
+第二种：
+
+```js
+const myJsonp = (url,callback,func) => {
+  let script = document.createElement('script');
+  script.src = url;
+  script.async = true;
+  window[callback] = function (data){
+    func && func(data);
+  }
+  document.body.appendChild(script);
+}
+```
+
+## 9.事件总线Event Bus
+
+Js事件总线的本质就是发布-订阅模式，达成任意组件间相互通信的作用。在一个地方触发（发布）事件，然后通过事件中心通知所有订阅者（订阅）。
+
+![Event Bus](https://rainsin-1305486451.file.myqcloud.com/%E5%89%8D%E7%AB%AF%E6%89%8B%E5%86%99/eventBus.png)
 
