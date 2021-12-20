@@ -228,7 +228,7 @@ function myBind(context,...firstargs){
 }
 ```
 
-## 4.函数柯里化、反柯里化和偏函数
+## 4.函数柯里化、反柯里化
 
 ### 4.1函数柯里化
 
@@ -342,12 +342,13 @@ console.log(ma(4,3));
 ### 4.2 函数反柯里化
 
 ```js
-Function.prototype.uncrruy(){
-  
+Function.prototype.uncrruy(...args){
+  let self = this;
+  return function (...arg){
+    
+  }
 }
 ```
-
-
 
 
 

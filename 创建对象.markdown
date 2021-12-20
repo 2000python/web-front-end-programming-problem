@@ -1,0 +1,46 @@
+
+---
+title: 创建对象
+date: 2021-09-28 15:36
+author: rainsin(尉旭胜)
+tag: js
+---
+es6 中增加了 class 关键字，用以实现类。但是它并不是一个新的东西，只是一个语法糖。
+# 创建对象的几种模式
+## 1.工厂模式
+在工厂模式中，我们在创建对象时不会对客户端暴露创建逻辑，并且是通过使用一个共同的接口来指向新创建的对象。
+JS中可以使用函数实现这种模式。
+```js
+function createObject(wife,age){
+        let John = new Object();
+        John.wife = wife;
+        John.age = age;
+        return John;
+}
+let o1 = createObject("mary",2580);
+```
+用调用函数来达到复用的目的，但是不知道对象是个什么类型(对象识别)。
+## 2.构造函数模式
+对于上述的缺点我们可以用 `this`的显式绑定来优化。
+我们将上述的代码重写：
+```js
+function Person(wife,age){
+        this.wife = wife;
+        this.age = age;
+}
+let o1 = new Person("mary",2580);
+```
+与前面代码相比：
+* 没有显式的创建 `John`对象
+* 将属性设置到了 `this`身上
+* 没有`return`
+* 头字母用大写字母表示构造函数用以区分其他函数
+
+在用 `new`创建对象实例时，经历了 4 个步骤：
+
+* 1.创建了一个新对象
+* 2.`this `指向新对象
+* 3.执行函数内的代码
+* 4.返回新对象
+构造函数也是函数，只是用 `new`来调用，事实上，只要是用`new`来调用的。
+可以用`constructor`来检测对象类型，也可用`instanceof`操作符。
