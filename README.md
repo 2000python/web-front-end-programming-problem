@@ -985,3 +985,88 @@ Js事件总线的本质就是发布-订阅模式，达成任意组件间相互�
 
 ![Event Bus](https://rainsin-1305486451.file.myqcloud.com/%E5%89%8D%E7%AB%AF%E6%89%8B%E5%86%99/eventBus.png)
 
+事件总线就是所有事件的管理者，通过事件的监听和触发实现发布-订阅模式。
+
+首先定义一个事件总线的类，定义一个储存事件的映射。
+
+```js
+class Bus {
+  constructor(){
+    this._eventlist = this._eventlist || new Map();
+  }
+}
+```
+
+类的原型上有监听事件、触发事件和移除事件等方法。除此之外我们还要注意订阅者不止一个。
+
+监听事件
+
+```js
+Bus.prototype.on(type,func){
+  //获取该type的事件列表
+  let handle = this._eventlist.get(type);
+  if(!handle){
+    //如果该type的事件列表为空，即没有订阅过
+    this._eventlist.set(type,func)
+  }else if(handle && typeof handle === 'function'){
+    //如果该type的事件列表为函数，即只订阅过一次
+    this._eventlist.set(type,[handle,...func]
+  }else{
+    //如果该type的事件列表为数组，即订阅过多次，直接push即可
+    handle.push(func)                     
+  }
+}
+```
+
+触发事件
+
+```js
+Bus.prototype.emit(type,...args){
+  //获取该type的事件列表
+  let handle = this._eventlist.get(type);
+  if(Array.isArray(handle)){
+    //如果该type的事件列表为数组，即订阅过多次，需要遍历执行所有的函数
+    handle.forEach((item)=> args.lenght>0 ? item.apply(this,args) : item.call(this));
+  }else{
+    //如果该type的事件列表为函数，即只订阅过一次，直接执行
+    if(args.lenght>0){
+      item.apply(this,args)
+    }else{
+      item.call(this)
+    }
+  }
+}
+```
+
+移除事件
+
+```js
+Bus.prototype.remove(type,func){
+  //获取该type的事件列表
+  let handle = this._eventlist.get(type);
+  let postion;
+  if(handle&&typeof handle === 'function'){
+    //如果该type的事件列表为函数，即只订阅过一次，直接删除
+    this._eventlist.delete(type)
+  }else{
+    //如果该type的事件列表为数组，即订阅过多次，需要遍历执行所有的函数找到目标函数，然后删除
+    handle.forEach((item,index)=>{
+      if(item === func){
+        handle.splice(index,1)
+        if(handle.lenght === 1){
+          this._eventlist.set(type,handle[0])
+        }
+      }else{
+        retrun this;
+      }
+    })
+  }
+}
+```
+
+## 10. Promise相关
+
+### 10.1 Promise的实现
+
+
+
