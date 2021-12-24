@@ -5,7 +5,7 @@ tags: ['手写']
 
 #  前端手写题
 
-必须自己动手写，不然啥也记不住。
+必须自己动手写，并且时刻复习，不然啥也记不住。
 
 可以看看`lodash`的源代码---> https://github.com/lodash/lodash
 
@@ -1068,5 +1068,10 @@ Bus.prototype.remove(type,func){
 
 ### 10.1 Promise的实现
 
+promise是js实现异步的一种重要机制
+
+promise的有若干个方法（reject，resolve...），我们一一实现。
+
+#### 1.resolve的实现
 
 
