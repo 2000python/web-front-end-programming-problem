@@ -1066,12 +1066,120 @@ Bus.prototype.remove(type,func){
 
 ## 10. Promise相关
 
-### 10.1 Promise的实现
+### 10.1 Promise的主体实现
 
-promise是js实现异步的一种重要机制
+promise是js异步的一种重要解决方案。
 
-promise的有若干个方法（reject，resolve...），我们一一实现。
+在Promise/A+规范中明确promise具有三种状态：`pending`、`fulfilled`、`rejected`。
 
-#### 1.resolve的实现
+> 其中`fulfilled`是一个承诺（`promise`）被解决（`resolve`）后的状态，该状态一旦确定了就不会改变，并且会有一个确定不可变的值（`value`）。
+>
+> `rejected`是一个承诺（`promise`）被拒绝（`rejected`）后的状态，该状态一旦确定了也不会改变，并且会有一个确定不可变的拒绝原因（`reason`）。
+>
+> 而`pending`是一个承诺（`promise`）还没有被解决（`resolve`）或被拒绝（`rejected`）时的状态。
 
+改变状态的方法有两个：`resolve`、`reject`。
+
+```js
+const PENDING = "pending";
+const FULFILLED = "fulfilled";
+const REJECTED = "rejected";
+```
+
+每个promise实例都会有自己的状态、保存值和回调函数的容器。
+
+> 就像每个承诺都有是否被应允或被拒绝（状态）、如何实现或拒绝这个承诺（回调函数）以及最后承诺实现时你得到的东西或拒绝的理由（保存值）。
+
+```js
+function myPromise(fu){
+  //保存初始化的状态
+  var self = this;
+  //初始化的状态
+  this.state = PENDING;
+  //保存promise被解决时传入的值
+  this.value = value;
+  //保存promise被拒绝时传入的原因
+  this.reason = reason;
+  //用于保存待解决的回调函数
+  this.resolveCallbacks = [];
+  //用于保存待拒绝的回调函数
+  this.rejectCallbacks = [];
+  //其他代码
+  ...
+}
+```
+
+之后实现两个转变状态的函数，它们都只有是状态为`PENDING`（待解决或待拒绝）时才能改变状态，所以会有一个条件判断语句。
+
+`resolve`方法会首先判断传入的参数是否是`promise`对象，如果是，则需要等待前一个状态改变之后再改变。
+
+```js
+function resolve(value){
+  if(value instanceof myPromise){
+    return value.then(resolve,reject);
+  }
+  //利用任务循环延迟执行
+  setTimeout(() => {
+    if(self.state === PENDING){
+      //修改状态
+      self.state = FULFILLED
+      //保存值
+      self.value = value
+      //遍历执行待解决容器中的函数
+      self.resolveCallbacks.forEach( item => item(value))
+    }
+  },0)
+}
+```
+
+`reject`方法比较简单，并不会判断传入的参数是否是`promise`对象
+
+```js
+function reject(reason){
+  //利用任务循环延迟执行
+  setTimeout(() => {
+    if(self.state === PENDING){
+      //修改状态
+      self.state = REJECTED
+      //保存值
+      self.reason = reason
+      //遍历执行待拒绝容器中的函数
+      self.rejectCallbacks.forEach( item => item(reason))
+    }
+  },0)
+}
+```
+
+然后将两个方法传入到最初传入的方法中并执行。
+
+```js
+try{
+  fu(resolve,reject);
+}catch(err){
+  reject(err)
+}
+```
+
+### 10.2 then的实现
+
+`then`要比上面两个方法复杂一点，因为是可选参数，所以得首先判断传入的参数是否为函数，因为值无法被执行会出错。
+
+```js
+myPromise.prototype.then = function(onResolved,onRejected){
+  onResolved = typeof onResolved === 'function' ? onResolved : value => value;
+  onRejected = typeof onRejected === 'function' ? onRejected : err => throw err;
+  //如果promise还未解决或拒绝则将参数推入待解决或待拒绝容器
+  if(this.state === PENDING){
+    this.resolveCallbacks.push(onResolved);
+    this.rejectCallbacks.push(onRejected);
+  }
+  //如果promise被解决或拒绝则直接执行参数
+  if(this.state === FULFILLED){
+    onResolved(this.value)
+  }
+  if(this.state === REJECTED){
+    onRejected(this.reason)
+  }
+}
+```
 
