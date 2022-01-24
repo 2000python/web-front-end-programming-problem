@@ -1183,3 +1183,5 @@ myPromise.prototype.then = function(onResolved,onRejected){
 }
 ```
 
+### 10.3 All的实现
+
